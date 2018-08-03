@@ -83,6 +83,23 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
 	//   implement this method and use it as a helper during the updateWeights phase.
 
+	for (unsigned int i = 0; i < observations.size(); i++) {
+		double current_closest = numeric_limits<double>::infinity();
+		for (unsigned int j = 0; j < predicted.size(); j++) {
+			double diff_x = predicted[j].x - observations[i].x;
+			double diff_y = predicted[j].y - observations[i].y;
+			double distance = sqrt((diff_x*diff_x) + (diff_y*diff_y));
+
+			int assigned_id = -1;
+			if (distance < current_closest) {
+				assigned_id = predicted[j].id;
+				current_closest = distance;
+			}
+
+			observations[i].id = assigned_id;
+		}
+	}
+
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
@@ -97,6 +114,21 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   and the following is a good resource for the actual equation to implement (look at equation
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
+
+	// transform car observation coordinates to map coordinates
+	std::vector<LandmarkObs> observations_map_coordinates;
+	for (unsigned int i = 0; i < num_particles; i++) {
+		for (unsigned int j = 0; j < observations.size(); j++) {
+			LandmarkObs transformed_landmark;
+			transformed_landmark.x = particles[i].x + (cos(particles[i].theta * observations[j].x) - (sin(particles[i].theta * observations[j].y)));
+			transformed_landmark.y = particles[i].y + (sin(particles[i].theta * observations[j].x) + (cos(particles[i].theta * observations[j].y)));
+			transformed_landmark.id = observations[j].id;
+
+			observations_map_coordinates.push_back(transformed_landmark);
+		}
+
+	}
+
 }
 
 void ParticleFilter::resample() {
