@@ -115,16 +115,52 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
 
-	// transform car observation coordinates to map coordinates
-	std::vector<LandmarkObs> observations_map_coordinates;
+	// Steps:
+	// 1. Transform coordinates to map coordinates
+	// 2. Associate landmarks
+	// 3. Update Weights
+	// 		- Determine measurement probability
+	// 		- Combine probabilities
+
 	for (unsigned int i = 0; i < num_particles; i++) {
+		// 1. Transform coordiantes
+		std::vector<LandmarkObs> transformed_coordinates;
 		for (unsigned int j = 0; j < observations.size(); j++) {
 			LandmarkObs transformed_landmark;
 			transformed_landmark.x = particles[i].x + (cos(particles[i].theta * observations[j].x) - (sin(particles[i].theta * observations[j].y)));
 			transformed_landmark.y = particles[i].y + (sin(particles[i].theta * observations[j].x) + (cos(particles[i].theta * observations[j].y)));
 			transformed_landmark.id = observations[j].id;
 
-			observations_map_coordinates.push_back(transformed_landmark);
+			transformed_coordinates.push_back(transformed_landmark);
+		}
+
+		// Filter map landmarks?
+
+		// 2. Associate Landmarks
+		dataAssociation(map_landmarks, transformed_coordinates);
+
+		// 3. Update Weights
+		particles[i].weight = 1.0;
+		double std_x = std_landmark[0];
+		double std_y = std_landmark[1];
+		for (unsigned int k = 0; k < transformed_coordinates.size(); k++) {
+			for (unsigned int l = 0; l < map_landmarks.size(); l++) {
+				if (transformed_coordinates[k].id == map_landmarks[l].id) {
+					// Mulitvariate-Gaussian Formula
+					double x = transformed_coordinates[k].x;
+					double y = transformed_coordinates[k].y;
+					double mean_x = map_landmarks[l].x;
+					double mean_y = map_landmarks[l].y;
+
+					double noramlizer = 1 / (2*M_PI*std_x*std_y);
+					double exponent = -(((x - mean_x)*(x - mean_x)/(2*std_x*std_x)) + ((y - mean_y)*(y - mean_y)/(2*std_y*std_y)));
+					double e = exp(exponent);
+
+					double prob = noramlizer * e;
+
+					particles[i].weight *= prob;
+				}
+			}
 		}
 
 	}
