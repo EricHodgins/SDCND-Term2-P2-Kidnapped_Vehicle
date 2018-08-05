@@ -164,6 +164,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		particles[i].weight = 1.0;
 		double std_x = std_landmark[0];
 		double std_y = std_landmark[1];
+		double std_x_2 = 2 * (std_x*std_x);
+		double std_y_2 = 2 * (std_y*std_y);
+		double noramlizer = 1 / (2*M_PI*std_x*std_y);
 		for (size_t k = 0; k < transformed_coordinates.size(); k++) {
 			for (size_t l = 0; l < sensed_landmarks.size(); l++) {
 				if (transformed_coordinates[k].id == sensed_landmarks[l].id) {
@@ -173,8 +176,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 					double mean_x = sensed_landmarks[l].x;
 					double mean_y = sensed_landmarks[l].y;
 
-					double noramlizer = 1 / (2*M_PI*std_x*std_y);
-					double exponent = -(((x - mean_x)*(x - mean_x)/(2*std_x*std_x)) + ((y - mean_y)*(y - mean_y)/(2*std_y*std_y)));
+					double exponent = -(((x - mean_x)*(x - mean_x)/(std_x_2)) + ((y - mean_y)*(y - mean_y)/(std_y_2)));
 					double e = exp(exponent);
 
 					double prob = noramlizer * e;
